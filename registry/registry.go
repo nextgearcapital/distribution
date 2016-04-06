@@ -20,6 +20,7 @@ import (
 	"github.com/docker/distribution/uuid"
 	"github.com/docker/distribution/version"
 	gorhandlers "github.com/gorilla/handlers"
+	"github.com/nextgearcapital/distribution/registry/util"
 	"github.com/spf13/cobra"
 	"github.com/yvasiyarov/gorelic"
 )
@@ -160,7 +161,19 @@ func (registry *Registry) ListenAndServe() error {
 		ln = tls.NewListener(ln, tlsConf)
 		context.GetLogger(registry.app).Infof("listening on %v, tls", ln.Addr())
 	} else {
-		context.GetLogger(registry.app).Infof("listening on %v", ln.Addr())
+		cert, err := util.Generate("nextgearcapital.com")
+		if err != nil {
+			return err
+		}
+
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{*cert},
+		}
+		tlsConfig.BuildNameToCertificate()
+
+		ln = tls.NewListener(ln, tlsConfig)
+
+		context.GetLogger(registry.app).Infof("listening on %v, tls", ln.Addr())
 	}
 
 	return registry.server.Serve(ln)
